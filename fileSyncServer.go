@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"github.com/axgle/mahonia"
 )
 
 func fileExist(fileName string) bool{
@@ -19,9 +20,20 @@ func fileExist(fileName string) bool{
 func HelloServer(w http.ResponseWriter, req *http.Request) {
 	fileName := req.FormValue("fileName")
 	fileContent := req.FormValue("fileContent")
-	fmt.Fprint(w, "hello")
 
 	rootPath := req.FormValue("rootPath")
+	log.Println(len(fileName))
+	log.Println(fileName == "")
+	if len(rootPath) == 0 || len(fileName) == 0 {
+		fmt.Fprint(w, "no path")
+		return
+	}
+
+	code := "utf8"
+	if req.FormValue("code") != ""{
+		code = req.FormValue("code")
+	}
+	fmt.Fprint(w, "hello " + code)
 
 	filePath := fileName
 	dir, fileName := filepath.Split(filePath)
@@ -44,6 +56,9 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 	}
 	defer f.Close()
 
+	if code == "gbk"{
+		fileContent = utf8ToGbk(fileContent)
+	}
 	f.WriteString(fileContent)
 
 	defer func(){
@@ -52,6 +67,24 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 			log.Fatal(e)
 		}
 	}()
+}
+
+func gbkToUtf8(str string) string {
+	decoder := mahonia.NewDecoder("gb18030")
+	if decoder == nil {
+		return ""
+	}
+
+	return decoder.ConvertString(str);
+}
+
+func utf8ToGbk(str string) string {
+	enc := mahonia.NewEncoder("gbk")
+	if enc == nil{
+		return ""
+	}
+
+	return enc.ConvertString(str)
 }
 
 func main() {
